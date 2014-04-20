@@ -77,5 +77,5 @@ Lemma one_isnt_zero: 1 <> 0.
 Proof.
 move=>E. 
 have X: if 1 == 0 then True else False by rewrite E; constructor.
-rewrite -E in X; assumption.
+exact X.
 Qed.
