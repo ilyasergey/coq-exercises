@@ -79,3 +79,13 @@ move=>E.
 have X: if 1 == 0 then True else False by rewrite E; constructor.
 exact X.
 Qed.
+
+Lemma leqD n m: n <= m -> exists p, m = n + p. 
+Proof.
+elim: m; first by rewrite leqn0; move/eqP=>->; eexists _.
+move=> m Hm.
+elim: n m Hm=>//; first by move=>m _ _; exists m.+1. 
+move=> n Hn m Hm. rewrite ltnS leq_eqVlt; case/orP.
+- by move/eqP=>->; exists 0.
+by case/Hm=>p E; subst m; exists p.+1. 
+Qed
