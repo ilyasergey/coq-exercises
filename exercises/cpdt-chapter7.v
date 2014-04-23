@@ -145,7 +145,9 @@ Section Fix.
 (** First, we have the function domain and range types. *)
 Variables A B : Type.
 
-(** Next comes the function body, which is written as though it can be parameterized over itself, for recursive calls. *)
+(** Next comes the function body, which is written as though it can be
+parameterized over itself, for recursive calls. *) 
+
 Variable f : (A -> computation B) -> (A -> computation B).
 
 Hypothesis f_cont : forall n v v2 x,
@@ -229,7 +231,7 @@ Program Definition mergeSort' A (le: A -> A -> bool): seq A -> computation (seq 
                    ls2 <- mergeSort (snd lss);
                    Return (merge le ls1 ls2)
           else Return ls) _.
-(* Proving continuity *)
+(* Proving continuity of the argument *)
 Next Obligation. 
 elim: (length x > 1) H =>//=; rewrite /runTo /Bind /=.
 move:(H0 (split x).1); case (v2 (split x).1)=>//=f.
@@ -256,6 +258,54 @@ Qed.
 Lemma test_looper : run (looper true) tt.
   exists 1; reflexivity.
 Qed.
+
+(***********************************************************************
+
+Lessons learned:
+----------------
+
+1. First, we defined basic operations and shoed how to run them within
+a liminted number of steps.
+
+2. Then, we defined partial order on partially defined functions and a
+notion of continuity (f_cont). 
+
+3. We have shown that thefixed point can be defined for the limited
+"fuel" (n) and proved it to be reachable (Lemma Fix'_ok). That is, if
+the fixpoint is instantiated with enough fuel, it will terminate.  The
+notion of continuity was crucial in order to prove Fix'_ok, which was
+later employed for construction of the Fix computation and proving
+that it "saturates" for a particular n.
+
+4. The computation wrapper Fix provides exactly the amount of fuel
+(which mich or might be not enough for termination). In order to run
+the program, we need to provied the amount of fuel by hand.
+
+5. Defining recursive functions amounts to proving continuity of their
+arguments.
+
+6. The crux of the development is a well-formed recursive function
+Fix' that takes a number of steps to execute. 
+
+7. It is important that the computations are *constructed* by means of
+shallow embedding, but not *run*: in order to do it, we need to
+provide enough "fuel".
+
+8. Use new constructros instead of the embedded refined time: it
+enables coercions and improves your karma. :)
+
+--------
+Homework
+--------
+
+- Can it be used in order to implement the fixed-point iteration in
+  abstract interpretation? Does one need to construct the termination
+  argument?
+
+- How to formulate the questions to the abstract interpreter?
+
+
+*************************************************************************)
 
 
 
