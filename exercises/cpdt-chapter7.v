@@ -292,7 +292,7 @@ shallow embedding, but not *run*: in order to do it, we need to
 provide enough "fuel".
 
 8. Use new constructros instead of the embedded refined time: it
-enables coercions and improves your karma. :)
+enables coercions and improves your karma and libido.
 
 --------
 Homework
