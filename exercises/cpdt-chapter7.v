@@ -220,18 +220,28 @@ Fixpoint merge (ls1 ls2 : list A) : list A :=
 
 End MergeSortHelpers.
 
-(* TODO *)
+Variable A : Type.
 
-Program Definition mergeSort' : forall A, (A -> A -> bool) -> seq A -> computation (seq A) :=
-  fun A le => Fix 
-     (fun (mergeSort : seq A -> computation (seq A)) 
-          (ls : list A) =>
+Program Definition mergeSort' (le: A -> A -> bool): seq A -> computation (seq A) :=
+@Fix _ _ (fun (mergeSort : seq A -> computation (seq A)) 
+         (ls : list A) =>
           if (length ls) <= 2
           then let lss := split ls in
                    ls1 <- mergeSort (fst lss);
                    ls2 <- mergeSort (snd lss);
                    Return (merge le ls1 ls2)
-          else Return ls).
+          else Return ls) _.
+(* TODO: prove continuity *)
+Next Obligation. 
+elim: (length x <= 2) H =>//=; rewrite /runTo /Bind /=.
+move:(H0 (split x).1); case (v2 (split x).1)=>//=f.
+case:(f n)=>//=a Cf /(_ a erefl) ->{f Cf}.
+move:(H0 (split x).2); case (v2 (split x).2)=>//=f.
+by case:(f n)=>//=b Cf /(_ b erefl) ->. 
+Qed.
+
+
+
 
 
 
