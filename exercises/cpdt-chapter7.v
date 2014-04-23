@@ -220,25 +220,46 @@ Fixpoint merge (ls1 ls2 : list A) : list A :=
 
 End MergeSortHelpers.
 
-Variable A : Type.
-
-Program Definition mergeSort' (le: A -> A -> bool): seq A -> computation (seq A) :=
+Program Definition mergeSort' A (le: A -> A -> bool): seq A -> computation (seq A) :=
 @Fix _ _ (fun (mergeSort : seq A -> computation (seq A)) 
          (ls : list A) =>
-          if (length ls) <= 2
+          if (length ls) > 1
           then let lss := split ls in
                    ls1 <- mergeSort (fst lss);
                    ls2 <- mergeSort (snd lss);
                    Return (merge le ls1 ls2)
           else Return ls) _.
-(* TODO: prove continuity *)
+(* Proving continuity *)
 Next Obligation. 
-elim: (length x <= 2) H =>//=; rewrite /runTo /Bind /=.
+elim: (length x > 1) H =>//=; rewrite /runTo /Bind /=.
 move:(H0 (split x).1); case (v2 (split x).1)=>//=f.
 case:(f n)=>//=a Cf /(_ a erefl) ->{f Cf}.
 move:(H0 (split x).2); case (v2 (split x).2)=>//=f.
 by case:(f n)=>//=b Cf /(_ b erefl) ->. 
+Defined.
+
+Definition leb := fun x y => x <= y.
+
+Lemma test_mergeSort' : run (mergeSort' leb (2 :: 1 :: 36 :: 8 :: 19 :: nil))
+  (1 :: 2 :: 8 :: 19 :: 36 :: nil).
+by exists 4.
 Qed.
+
+Program Definition looper : bool -> computation unit :=
+@Fix _ _ (fun looper (b : bool) =>
+    if b then Return tt else looper b) _.
+Next Obligation.
+case: x H (H0 x)=>// E /(_ v). rewrite -E /runTo=>/(_ erefl) G. 
+by rewrite G.
+Qed.
+
+Lemma test_looper : run (looper true) tt.
+  exists 1; reflexivity.
+Qed.
+
+
+
+
 
 
 
