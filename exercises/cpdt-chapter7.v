@@ -185,6 +185,24 @@ Qed.
 
 End Fix.
 
+
+(* 
+
+[Remark 1448:]
+
+Setting these implicit arguments is important: otherwise it will not
+be easy to use Fix in the two exmaples below. The heurisitics of Coq
+works in the way that it starts unifying the frist arguments, which
+doesn't depend on anything. 
+
+This leads to the problem that the argument of Fix (the function) is
+being unified with the proof of its continuity. In order to avoid
+this, we use the following pragma to specify which arguments should be
+considered implicit. The others should be mentioned explicitly.
+
+*)
+Implicit Arguments Fix [A B].
+
 Lemma leq_Some  A (x y : A): leq (Some x) (Some y) -> x = y.
 Proof. by case/(_ y erefl). Qed.
 
@@ -223,7 +241,7 @@ Fixpoint merge (ls1 ls2 : list A) : list A :=
 End MergeSortHelpers.
 
 Program Definition mergeSort' A (le: A -> A -> bool): seq A -> computation (seq A) :=
-@Fix _ _ (fun (mergeSort : seq A -> computation (seq A)) 
+Fix (fun (mergeSort : seq A -> computation (seq A)) 
          (ls : list A) =>
           if (length ls) > 1
           then let lss := split ls in
@@ -248,7 +266,7 @@ by exists 4.
 Qed.
 
 Program Definition looper : bool -> computation unit :=
-@Fix _ _ (fun looper (b : bool) =>
+Fix (fun looper (b : bool) =>
     if b then Return tt else looper b) _.
 Next Obligation.
 case: x H (H0 x)=>// E /(_ v). rewrite -E /runTo=>/(_ erefl) G. 
