@@ -1,4 +1,4 @@
-Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path pred prelude idynamic.
+Require Import ssreflect ssrbool ssrnat eqtype ssrfun seq path Eqdep.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -20,15 +20,13 @@ Inductive exp : type -> Set :=
 | Snd : forall t1 t2, exp (Prod t1 t2) -> exp t2.
 *)
 
-Inductive exp (t : type) := 
+Inductive exp t := 
   NConst' of nat & Nat = t
 | Plus' of exp Nat & exp Nat & Nat = t
 | Eq' of exp Nat & exp Nat & Bool = t
-
 | BConst' of bool & Bool = t
 | And' of exp Bool & exp Bool & Bool = t
 | If' of exp Bool & exp t & exp t
-
 | Pair' t1 t2 of exp t1 & exp t2 & Prod t1 t2 = t
 | Fst' t1 t2 of exp (Prod t1 t2) & t1 = t
 | Snd' t1 t2 of exp (Prod t1 t2) & t2 = t.
@@ -36,25 +34,66 @@ Inductive exp (t : type) :=
 Definition NConst n := NConst' n (erefl _).
 Definition Plus e1 e2 := Plus' e1 e2 (erefl _).
 Definition Eq e1 e2 := Eq' e1 e2 (erefl _).
-
 Definition BConst n := BConst' n (erefl _).
 Definition And e1 e2 := And' e1 e2 (erefl _).
 Definition If b e1 e2 := @If' b e1 e2.
-
 Definition Pair t1 t2 e1 e2 := @Pair' _ t1 t2 e1 e2 (erefl _).
 Definition Fst t1 t2 e := @Fst' _ t1 t2 e (erefl _).
 Definition Snd t1 t2 e := @Snd' _ t1 t2 e (erefl _).
 
-(*
+Definition cast T (t t' : type) (r : t = t') (e : T t) :=
+  match r in (_ = t') return T t' with erefl => e end.
+
+Lemma eqc T t (r : t = t) (e : T t) : cast r e = e.
+Proof. by move: r; apply: Streicher_K. Qed.
+
+(* better case analysis over exp t that *)
+(* doesn't go down to primed constructors *)
+(* this is a boring boilerplate, which is in Coq done by tactics *)
+(* but let's not use tactics here *)
+
 Inductive exp_spec t : exp t -> Type := 
-| nconst_exp_spec n : t = Nat -> forall pf, exp_spec (icoerce id (NConst n) pf) 
-| plus_exp_spec e1 e2 : t = Nat -> forall pf, exp_spec (icoerce id (Plus e1 e2) pf)
-| eq_exp_spec e1 e2 : t = Nat -> forall pf, exp_spec (icoerce id (Eq e1 e2) pf).
+| nconst_exp n : Nat = t -> forall pf, exp_spec (cast pf (NConst n)) 
+| plus_exp e1 e2 : Nat = t -> forall pf, exp_spec (cast pf (Plus e1 e2))
+| eq_exp e1 e2 : Bool = t -> forall pf, exp_spec (cast pf (Eq e1 e2))
+| bconst_exp b : Bool = t -> forall pf, exp_spec (cast pf (BConst b))
+| and_exp e1 e2 : Bool = t -> forall pf, exp_spec (cast pf (And e1 e2))
+| if_exp b (e1 e2 : exp t) : exp_spec (If b e1 e2)
+| pair_exp t1 t2 (e1 : exp t1) (e2 : exp t2) : 
+    Prod t1 t2 = t -> forall pf, exp_spec (cast pf (Pair e1 e2))
+| fst_exp t2 (e : exp (Prod t t2)) : exp_spec (Fst e)
+| snd_exp t1 (e : exp (Prod t1 t)) : exp_spec (Snd e).
 
 Lemma expP t (e : exp t) : exp_spec e.
-Proof. admit. Qed.
+Proof. 
+case: e.
+- move=>n r. 
+  suff -> : NConst' n r = cast r (NConst n) by apply: nconst_exp.
+  by move: (r); rewrite -r; apply: Streicher_K.
+- move=>e1 e2 r.
+  suff -> : Plus' e1 e2 r = cast r (Plus e1 e2) by apply: plus_exp.
+  by move: (r); rewrite -r; apply: Streicher_K.
+- move=>e1 e2 r.
+  suff -> : Eq' e1 e2 r = cast r (Eq e1 e2) by apply: eq_exp.
+  by move: (r); rewrite -r; apply: Streicher_K.
+- move=>b r.
+  suff -> : BConst' b r = cast r (BConst b) by apply: bconst_exp.
+  by move: (r); rewrite -r; apply: Streicher_K.
+- move=>e1 e2 r.
+  suff -> : And' e1 e2 r = cast r (And e1 e2) by apply: and_exp.
+  by move: (r); rewrite -r; apply: Streicher_K.
+- by move=>b e1 e2; apply: if_exp.
+- move=>t1 t2 e1 e2 r.
+  suff -> : Pair' e1 e2 r = cast r (Pair e1 e2) by apply: pair_exp.
+  by move: (r); rewrite -r; apply: Streicher_K.
+- by move=>t1 t2 e r; subst t; apply: fst_exp.
+by move=>t1 t2 e r; subst t; apply: snd_exp.
+Qed.
 
-*)
+(* test goal *)
+Lemma xx n (x : exp Nat) : x = NConst n.
+Proof. case/expP: x=>//. Abort.
+
 
 Fixpoint typeDenote (t : type) : Set :=
   match t with
@@ -63,8 +102,10 @@ Fixpoint typeDenote (t : type) : Set :=
     | Prod t1 t2 => prod (typeDenote t1) (typeDenote t2)
   end.
 
+(*
 Definition cast t t' (r : t = t') (e : typeDenote t) :=
   match r in (_ = t') return typeDenote t' with erefl => e end.
+*)
 
 Fixpoint expDenote t (e : exp t) : typeDenote t :=
   match e with
