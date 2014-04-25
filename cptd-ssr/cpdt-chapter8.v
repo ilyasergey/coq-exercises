@@ -21,18 +21,17 @@ Inductive exp : type -> Set :=
 *)
 
 Inductive exp (t : type) := 
-  NConst' of nat & t = Nat
-| Plus' of exp Nat & exp Nat & t = Nat
-| Eq' of exp Nat & exp Nat & t = Bool
+  NConst' of nat & Nat = t
+| Plus' of exp Nat & exp Nat & Nat = t
+| Eq' of exp Nat & exp Nat & Bool = t
 
-| BConst' of bool & t = Bool
-| And' of exp Bool & exp Bool & t = Bool
-| If' t' of exp Bool & exp t' & exp t' & t = t'
+| BConst' of bool & Bool = t
+| And' of exp Bool & exp Bool & Bool = t
+| If' of exp Bool & exp t & exp t
 
-| Pair' t1 t2 of exp t1 & exp t2 & t = (Prod t1 t2)
-| Fst' t1 t2 of exp (Prod t1 t2) & t = t1
-| Snd' t1 t2 of exp (Prod t1 t2) & t = t2.
-
+| Pair' t1 t2 of exp t1 & exp t2 & Prod t1 t2 = t
+| Fst' t1 t2 of exp (Prod t1 t2) & t1 = t
+| Snd' t1 t2 of exp (Prod t1 t2) & t2 = t.
 
 Definition NConst n := NConst' n (erefl _).
 Definition Plus e1 e2 := Plus' e1 e2 (erefl _).
@@ -40,80 +39,47 @@ Definition Eq e1 e2 := Eq' e1 e2 (erefl _).
 
 Definition BConst n := BConst' n (erefl _).
 Definition And e1 e2 := And' e1 e2 (erefl _).
-Definition If t b e1 e2 := @If' t t b e1 e2 (erefl _).
+Definition If b e1 e2 := @If' b e1 e2.
 
 Definition Pair t1 t2 e1 e2 := @Pair' _ t1 t2 e1 e2 (erefl _).
 Definition Fst t1 t2 e := @Fst' _ t1 t2 e (erefl _).
 Definition Snd t1 t2 e := @Snd' _ t1 t2 e (erefl _).
 
 (*
-CoInductive exp_spec t : exp t -> Type := 
+Inductive exp_spec t : exp t -> Type := 
 | nconst_exp_spec n : t = Nat -> forall pf, exp_spec (icoerce id (NConst n) pf) 
 | plus_exp_spec e1 e2 : t = Nat -> forall pf, exp_spec (icoerce id (Plus e1 e2) pf)
 | eq_exp_spec e1 e2 : t = Nat -> forall pf, exp_spec (icoerce id (Eq e1 e2) pf).
 
 Lemma expP t (e : exp t) : exp_spec e.
 Proof. admit. Qed.
-*)
 
+*)
 
 Fixpoint typeDenote (t : type) : Set :=
   match t with
     | Nat => nat
     | Bool => bool
-    | Prod t1 t2 => typeDenote t1 * typeDenote t2
-  end%type.
-
-Lemma blah1 t : t = Nat -> nat = typeDenote t.
-Proof. by move=>->. Defined.
-
-Print blah1.
-Check eq_ind_r. 
-Check eq_rect.
-Check icoerce. 
-Check typeDenote.
-
-Definition get_eq t (e : exp t) : type :=
-  match e with
-    NConst' n r => Nat
- | Plus' _ _ r => Nat
- | Eq' _ _ r => Nat
- | _ => Bool
- end.
-
-Lemma expDenote t (e : exp t) : get_eq e = t.
-admit.
-
-Program Fixpoint expDenote t (e : exp t) : typeDenote (get_eq e) :=
-  match e with
-    | NConst' n r => n 
-    | Plus' e1 e2 r => expDenote e1 + expDenote e2
-    | Eq' e1 e2 r => icoerce id ((expDenote e1) == (expDenote e2)) (eq_ind_r _ r (erefl _)) 
-
-    | BConst' b r => icoerce id b (eq_ind_r _ r (erefl _)) 
-    | And' e1 e2 r => icoerce id (expDenote e1 && expDenote e2) (eq_ind_r _ r (erefl _))
-    | If' _ e' e1 e2 _ => if expDenote e' then expDenote e1 else expDenote e2
-
-    | Pair' t1 t2 e1 e2 r => icoerce id (expDenote e1, expDenote e2) (eq_ind_r _ r (erefl _))
-    | Fst' _ _ e' _ => fst (expDenote e')
-    | Snd' _ _ e' _ => snd (expDenote e')
+    | Prod t1 t2 => prod (typeDenote t1) (typeDenote t2)
   end.
 
+Definition cast t t' (r : t = t') (e : typeDenote t) :=
+  match r in (_ = t') return typeDenote t' with erefl => e end.
 
 Fixpoint expDenote t (e : exp t) : typeDenote t :=
   match e with
-    | NConst n => n
-    | Plus e1 e2 => expDenote e1 + expDenote e2
-    | Eq e1 e2 => if eq_nat_dec (expDenote e1) (expDenote e2) then true else false
-
-    | BConst b => b
-    | And e1 e2 => expDenote e1 && expDenote e2
-    | If _ e' e1 e2 => if expDenote e' then expDenote e1 else expDenote e2
-
-    | Pair _ _ e1 e2 => (expDenote e1, expDenote e2)
-    | Fst _ _ e' => fst (expDenote e')
-    | Snd _ _ e' => snd (expDenote e')
+  | NConst' n r => cast r n
+  | Plus' e1 e2 r => cast r (expDenote e1 + expDenote e2)
+  | Eq' e1 e2 r => cast r (expDenote e1 == expDenote e2) 
+  | BConst' b r => cast r b
+  | And' e1 e2 r => cast r (expDenote e1 && expDenote e2)
+  | If' e' e1 e2 => if expDenote e' then expDenote e1 else expDenote e2
+  | Pair' t1 t2 e1 e2 r => cast r (expDenote e1, expDenote e2)
+  | Fst' _ _ e' r => cast r (fst (expDenote e'))
+  | Snd' _ _ e' r => cast r (snd (expDenote e'))
   end.
+
+
 
 
 
