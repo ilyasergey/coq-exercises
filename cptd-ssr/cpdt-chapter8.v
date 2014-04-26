@@ -72,8 +72,7 @@ Inductive exp_spec t : exp t -> Type :=
 
 Lemma expP t (e : exp t) : exp_spec e.
 Proof. 
-case: e=>*; try by [constructor]; try by [subst t; constructor];
-by rewrite (recast (fun t => _)); constructor. 
+by case: e=>*; rewrite 1?(recast (fun t => _)); try subst t; constructor.
 Qed.
 
 (* test goal *)
