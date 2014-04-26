@@ -44,8 +44,14 @@ Definition Snd t1 t2 e := @Snd' _ t1 t2 e (erefl _).
 Definition cast T (t t' : type) (r : t = t') (e : T t) :=
   match r in (_ = t') return T t' with erefl => e end.
 
+(* eliminating casts *)
 Lemma eqc T t (r : t = t) (e : T t) : cast r e = e.
 Proof. by move: r; apply: Streicher_K. Qed.
+
+(* re-introducing casts *)
+Lemma recast T t t' (P : forall t, t' = t -> T t) (r : t' = t) : 
+        P t r = cast r (P t' (erefl _)).
+Proof. by move: (r); rewrite -r; apply: Streicher_K. Qed.
 
 (* better case analysis over exp t that *)
 (* doesn't go down to primed constructors *)
@@ -66,28 +72,8 @@ Inductive exp_spec t : exp t -> Type :=
 
 Lemma expP t (e : exp t) : exp_spec e.
 Proof. 
-case: e.
-- move=>n r. 
-  suff -> : NConst' n r = cast r (NConst n) by apply: nconst_exp.
-  by move: (r); rewrite -r; apply: Streicher_K.
-- move=>e1 e2 r.
-  suff -> : Plus' e1 e2 r = cast r (Plus e1 e2) by apply: plus_exp.
-  by move: (r); rewrite -r; apply: Streicher_K.
-- move=>e1 e2 r.
-  suff -> : Eq' e1 e2 r = cast r (Eq e1 e2) by apply: eq_exp.
-  by move: (r); rewrite -r; apply: Streicher_K.
-- move=>b r.
-  suff -> : BConst' b r = cast r (BConst b) by apply: bconst_exp.
-  by move: (r); rewrite -r; apply: Streicher_K.
-- move=>e1 e2 r.
-  suff -> : And' e1 e2 r = cast r (And e1 e2) by apply: and_exp.
-  by move: (r); rewrite -r; apply: Streicher_K.
-- by move=>b e1 e2; apply: if_exp.
-- move=>t1 t2 e1 e2 r.
-  suff -> : Pair' e1 e2 r = cast r (Pair e1 e2) by apply: pair_exp.
-  by move: (r); rewrite -r; apply: Streicher_K.
-- by move=>t1 t2 e r; subst t; apply: fst_exp.
-by move=>t1 t2 e r; subst t; apply: snd_exp.
+case: e=>*; try by [constructor]; try by [subst t; constructor];
+by rewrite (recast (fun t => _)); constructor. 
 Qed.
 
 (* test goal *)
