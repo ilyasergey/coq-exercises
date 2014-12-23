@@ -33,19 +33,6 @@ Notation Pair := (Pair' (erefl _)).
 (* a better induction principle; gathers the like constructors *)
 (* and removes unnecessary type equations *)
 
-Lemma exp_ind' (P : forall t : type, exp t -> Prop) : 
-        [/\ forall n, P Nat (NConst n) &
-            forall b, P Bool (BConst b)] ->
-        [/\ forall e1 e2, P Nat e1 -> P Nat e2 -> P Nat (Plus e1 e2),
-            forall e1 e2, P Nat e1 -> P Nat e2 -> P Bool (Eq e1 e2) &
-            forall e1 e2, P Bool e1 -> P Bool e2 -> P Bool (And e1 e2)] ->
-        (forall t e e1 e2, P Bool e -> P t e1 -> P t e2 -> P t (If e e1 e2)) ->
-        (forall t1 t2 e1 e2, P t1 e1 -> P t2 e2 -> P (Prod t1 t2) (Pair e1 e2)) ->
-        [/\ forall t1 t2 e, P (Prod t1 t2) e -> P t1 (Fst e) &
-            forall t1 t2 e, P (Prod t1 t2) e -> P t2 (Snd e)] ->
-        forall t e, P t e.
-Proof. by case=>?? [???] ?? [??] t; elim=>t' *; try subst t'; intuition. Qed.
-
 Definition cast T (t t' : type) (r : t = t') (e : T t) :=
   match r in (_ = t') return T t' with erefl => e end.
 
@@ -144,6 +131,19 @@ Fixpoint cfold t (e : exp t) : exp t :=
       let f := cfold e in
       if f is Pair' _ _ r e1 e2 then cast (proj2 (pair_out r)) e2 else Snd f
   end. 
+
+Lemma exp_ind' (P : forall t : type, exp t -> Prop) : 
+        [/\ forall n, P Nat (NConst n) &
+            forall b, P Bool (BConst b)] ->
+        [/\ forall e1 e2, P Nat e1 -> P Nat e2 -> P Nat (Plus e1 e2),
+            forall e1 e2, P Nat e1 -> P Nat e2 -> P Bool (Eq e1 e2) &
+            forall e1 e2, P Bool e1 -> P Bool e2 -> P Bool (And e1 e2)] ->
+        (forall t e e1 e2, P Bool e -> P t e1 -> P t e2 -> P t (If e e1 e2)) ->
+        (forall t1 t2 e1 e2, P t1 e1 -> P t2 e2 -> P (Prod t1 t2) (Pair e1 e2)) ->
+        [/\ forall t1 t2 e, P (Prod t1 t2) e -> P t1 (Fst e) &
+            forall t1 t2 e, P (Prod t1 t2) e -> P t2 (Snd e)] ->
+        forall t e, P t e.
+Proof. by case=>?? [???] ?? [??] t; elim=>t' *; try subst t'; intuition. Qed.
 
 Lemma cfold_correct t (e : exp t) : expDenote e = expDenote (cfold e).
 Proof.
