@@ -206,6 +206,7 @@ Implicit Arguments Fix [A B].
 Lemma leq_Some  A (x y : A): leq (Some x) (Some y) -> x = y.
 Proof. by case/(_ y erefl). Qed.
 
+
 Lemma leq_None A (x y : A): leq None (Some x) -> False.
 Proof. by move/(_ x erefl). Qed.
 
